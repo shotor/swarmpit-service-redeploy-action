@@ -1,16 +1,49 @@
 import * as core from '@actions/core'
-import {wait} from './wait'
+import fetch from 'node-fetch'
 
 async function run(): Promise<void> {
   try {
-    const ms: string = core.getInput('milliseconds')
-    core.debug(`Waiting ${ms} milliseconds ...`) // debug is only output if you set the secret `ACTIONS_RUNNER_DEBUG` to true
+    const URL = core.getInput('url')
+    const STACK = core.getInput('stack')
+    const SERVICE = `${STACK}_${core.getInput('service')}`
+    const TAG = core.getInput('tag')
+    const API_KEY = core.getInput('api-key')
 
-    core.debug(new Date().toTimeString())
-    await wait(parseInt(ms, 10))
-    core.debug(new Date().toTimeString())
+    const servicesResponse = await fetch(
+      `${URL}/api/stacks/${STACK}/services`,
+      {
+        headers: {
+          Authorization: `Bearer ${API_KEY}`
+        }
+      }
+    )
+    const services = (await servicesResponse.json()) as {
+      id: string
+      serviceName: string
+    }[]
 
-    core.setOutput('time', new Date().toTimeString())
+    if (!services.length) {
+      return core.setFailed('Stack not found')
+    }
+
+    const serviceId = services.find(x => x.serviceName === SERVICE)?.id
+
+    if (!serviceId) {
+      return core.setFailed('Could not find services')
+    }
+
+    const redeployResponse = await fetch(
+      `${URL}/api/services/${serviceId}/redeploy?tag=${TAG}`
+    )
+    const redeployJSON = await redeployResponse.json()
+
+    if (!redeployResponse.ok) {
+      return core.setFailed(
+        `Redeploy failed with status ${redeployResponse.status} and message: ${redeployJSON}`
+      )
+    }
+
+    core.info('Redeploy succeeded')
   } catch (error) {
     core.setFailed(error.message)
   }

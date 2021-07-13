@@ -1,11 +1,22 @@
-name: 'Your name here'
-description: 'Provide a description here'
-author: 'Your name or organization here'
+name: 'Swarmpit Service Redeploy Action'
+description: 'Redeploy a swarm service through the swarmpit api'
 inputs:
-  milliseconds: # change this
+  url:
+    description: 'Base url of Swarmpit api'
     required: true
-    description: 'input description here'
-    default: 'default value if applicable'
+  stack:
+    description: Stack service belongs to
+    required: true
+  service:
+    description: Service to redeploy inside stack
+    required: true
+  tag:
+    description: Tag to redeploy service with
+    required: true
+  api-key:
+    description: API key to authenticate with Swarmpit API
+    required: true
+
 runs:
   using: 'node12'
-  main: 'dist/index.js'
+  main: 'index.js'
